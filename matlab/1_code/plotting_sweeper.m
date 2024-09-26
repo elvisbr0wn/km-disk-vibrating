@@ -1,7 +1,8 @@
-% This script will plot a number of variables relating such as coefficient
+% This script will plot a number of variables such as coefficient
 % of restitution, contact time and max deflection.
 
 
+% Filter
 clear data;
 data.D = 50;
 data.Quant = 100;
@@ -28,8 +29,8 @@ currfol = pwd;
 Westar = []; Bo = []; Oh = []; max_deflection = []; contact_time = []; 
 coef_restitution = []; N = [];
 plotting_data = table(Westar, Bo, Oh, max_deflection, contact_time, coef_restitution, N);
-standalone = false;
-saving = true;
+standalone = false; % if true, will compare against previous experimental results
+saving = true; % Will save with unique datetime ids (different name each time)
 
 for ii = 1:length(files)
     
@@ -169,7 +170,8 @@ else
     warning("Couldn't find any simulations with the specified parameters");
 end
 function bool = is_valid(simul, data)
-    bool = true; tolerance = 0.05;
+    % This function checks 
+    bool = true; tolerance = 0.05; % Relative tolerance to accept
     fnames = fieldnames(data);
     for ii = 1:length(fnames)
         fieldname = fnames{ii};

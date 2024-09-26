@@ -4,13 +4,16 @@
 % STEP 3: Actually run the simulations. 
 diary ../0_data/manual/Logger/sweeper_postprocessing_logger.txt
 disp("-------");
-fprintf("%s \n %s", datestr(datetime()), mfilename('fullpath'));
+fprintf("%s \n %s \n", datestr(datetime()), mfilename('fullpath'));
 files_folder = dir("**/etaOri.mat");
 for ii = 1:length(files_folder)
     cd(files_folder(ii).folder);
     
     while ~isfile("dr.mat")
+        lastpwd = pwd;
         cd ..
+        if strcmp(pwd, lastpwd); error("Could not find files to perform postprocessing"); end
+
     end
     load("dr.mat");
     cd(files_folder(ii).folder);

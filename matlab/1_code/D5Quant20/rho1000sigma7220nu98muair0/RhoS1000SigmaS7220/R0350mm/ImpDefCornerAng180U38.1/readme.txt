@@ -1,1 +1,0 @@
-This folder contains experimental implementations of the dropplet vs bath. solveDDCusp is implemented differently
