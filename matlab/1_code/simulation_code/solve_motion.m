@@ -26,10 +26,6 @@ cellfun(@(f) assignin('caller', f, NameValueArgs.(f)), fieldnames(NameValueArgs)
 lastwarn('', '');
 
 close all
-
-%tstart = tic;
-%data in cgs
-
 currfold = pwd;
 addpath(currfold);
 precomputedInverse = nan; 
@@ -97,22 +93,9 @@ dt = T_unit/temporalResolution; %
 steps = ceil(simulationTime/dt); %estimated minimum number of timesteps
 if steps * nr * 8 > 1e+9; warning('Spatial resolution and simulation times might be too big to store all matrices in memory'); end
 %Inintial conditions for the fluid
-%Zeroing result storing variables
-%etaOri = zeros(1,steps+1);%height of the surface below the south pole
-%obj_height = zeros(1,steps);%height of the centre of mass
-%objVelocity = zeros(1,steps);%speed of the centre of mass
-%numl = zeros(1,steps+1);%number of pressed mesh points at each time step
-%saved_times = zeros(1, steps); %vector of times assuming no refinement has happened
 
-%dt = tvec(2) - tvec(1); indexes_to_save = zeros(steps + 1, 1);
-%current_to_save = 2; indexes_to_save(1) = 1;
-
-%nlmax = zeros(1,steps+1);%Variable to store the number of nodes spanned by the deformed droplet
-%zeroing variable that records each part of the sequence of surface states
-%etaMatPer = zeros(length(etao),nsteps); 
 etaInitial = zeros(nr,1); %initial surface elevation
 phiInitial = zeros(nr,1); %initial surface potential
-
 
 current_conditions = struct( ...
     "dt", dt(1), "time", 0, ...
