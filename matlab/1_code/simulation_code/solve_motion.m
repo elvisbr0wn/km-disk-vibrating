@@ -42,7 +42,7 @@ try
     DTN = DTNnew345;
     clear DTNnew345
     % Loading precomputed inverse if exists
-    myfile = fullfile(pwd, sprintf("temporalResolution%d.mat", temporalResolution)); %cd(sprintf("temporalResolution%d", temporalResolution));
+    myfile = fullfile(pwd, sprintf("dtstep=%d.mat", forceFrequency*temporalResolution)); 
     if exist(myfile, "file"); load(myfile, "precomputedInverse"); end
     cd(currfold)
 catch ME
