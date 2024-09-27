@@ -4,9 +4,9 @@ arguments
     % Unless stated otherwise, all units are cgs. 
     % Default values amount to a water bath
     NameValueArgs.diskRadius (1, 1) double = 1 % Radius of the oscillating disk, in cm
-    NameValueArgs.diskMass (1, 1) double = 50 % Mass in grams of the disk
-    NameValueArgs.forcingAmplitude (1, 1) double = 5000 % Amplitude of sinusoidal force applied to disk (in dynes)
-    NameValueArgs.forcingFrequency (1, 1) double = 20 % Frequency of sinusoidal force in Hz
+    NameValueArgs.diskMass (1, 1) double = 5 % Mass in grams of the disk
+    NameValueArgs.forceAmplitude (1, 1) double = 2000 % Amplitude of sinusoidal force applied to disk (in dynes)
+    NameValueArgs.forceFrequency (1, 1) double = 20 % Frequency of sinusoidal force in Hz
     NameValueArgs.bathDensity (1, 1) double = 1 % Density of bath's fluid in g/cm^3
     NameValueArgs.bathSurfaceTension (1, 1) double = 72.20 % For water, in dynes/cm
     NameValueArgs.bathViscosity (1, 1) double = 0.978e-2 % Viscosity in Stokes (cgs)
@@ -18,10 +18,13 @@ arguments
     NameValueArgs.debug_flag (1, 1) logical = true; % To show some debugging info
 end
 
+datetimeMarker = datetime('now'); datetimeMarker.Format = 'yyyyMMddmmss';
+NameValueArgs.datetimeMarker = datetimeMarker;
 % Beware! I'm adding all these names into the current scope
 cellfun(@(f) assignin('caller', f, NameValueArgs.(f)), fieldnames(NameValueArgs));
 %Reset warning
 lastwarn('', '');
+
 close all
 
 %tstart = tic;
@@ -53,8 +56,8 @@ end
 [dr, laplacian, pressureIntegral] = domainMaker(bathDiameter, spatialResolution);
 
 % Dimensional parameters
-%forcingFrequency = 100; % Oscillations of theforce in Hertz.
-%forcingAmplitude = 1; % Force amplitude in cgs
+%forceFrequency = 100; % Oscillations of theforce in Hertz.
+%forceAmplitude = 1; % Force amplitude in cgs
 %diskMass = 10; % Mass in grams of the object
 %bathViscosity = 1;
 %Characteristic Units
@@ -62,7 +65,7 @@ end
 L_unit = diskRadius; 
 M_unit = bathDensity * L_unit^3; % Mass unit. 
 %T = sqrt(rhoS * Ro^3/sigmaS); % Characteristic time
-T_unit = 1/forcingFrequency;
+T_unit = 1/forceFrequency;
 V_unit = L_unit/T_unit;
 F_unit = M_unit * L_unit/T_unit^2;
 
@@ -74,8 +77,8 @@ Re = L_unit^2/(bathViscosity*T_unit);
 Fr = L_unit/(g * T_unit^2) * inf; % Turning off gravity
 We = bathDensity * L_unit.^3 / (bathSurfaceTension * T_unit^2); 
 
-force_adim = forcingAmplitude/diskMass * T_unit^2/L_unit;
-freq_adim  = forcingFrequency * T_unit;
+force_adim = forceAmplitude/diskMass * T_unit^2/L_unit;
+freq_adim  = forceFrequency * T_unit;
 obj_mass_adim = diskMass/M_unit;
 
 %WeS  = rhoS*Ro^3/(sigmaS * T_unit^2); %This is for the bath/dropplet interaction.
@@ -133,9 +136,9 @@ fprintf("Starting simulation on %s\n", pwd);
 
 % Names of the variables to be stored
 savingvarNames = { ...
+    getVarName(NameValueArgs), ...
     getVarName(PROBLEM_CONSTANTS), ...
     getVarName(recordedConditions), ...
-    getVarName(NameValueArgs), ...
     getVarName(UNITS) ...
 };
 
@@ -201,7 +204,7 @@ try
        variableValues{ii} = eval(savingvarNames{ii}); 
     end
 
-    results_saver("", 1:(current_index-1), variableValues, savingvarNames);
+    results_saver("simulationResults", 1:(current_index-1), variableValues, savingvarNames, NameValueArgs);
 
 catch ME
 
@@ -216,11 +219,11 @@ catch ME
        variableValues{ii} = eval(savingvarNames{ii}); 
     end
 
-    results_saver("errored_", 1:(current_index-1), variableValues, savingvarNames);
+    results_saver("errored_results", 1:(current_index-1), variableValues, savingvarNames, NameValueArgs);
        
     fprintf("Couldn't run simulation"); 
-    a = datetime('now'); a.Format = 'yyyyMMddmmss';
-    save(sprintf("error_logU0=%s.mat", a),'ME');
+    
+    save(sprintf("error_log%s.mat", datetimeMarker),'ME');
 end % end while catch
 
 %simul_time = toc(tstart);
@@ -238,10 +241,13 @@ cd(currfold)
 
 end
 
-function results_saver(prefix, indexes, variables, variableNames)
+function results_saver(fileName, indexes, variables, variableNames, NameValueArgs)
+    currfold = pwd;
     folders = { ...
-        sprintf("rho%.2fgcm3sigma%.2fdynecm", bathDensity, bathSurfaceTension), ...
-        sprintf("diskRadius%.2g", diskRadius) ...
+        sprintf("rho%.2fgcm3-sigma%.2fdynecm-nu%%.4fSt", ...
+        NameValueArgs.bathDensity, NameValueArgs.bathSurfaceTension, NameValueArgs.bathViscosity), ...
+        sprintf("diskRadius%.2gcm-diskMass%.2gg", NameValueArgs.diskRadius, NameValueArgs.diskMass), ...
+        sprintf("forceAmplitude%.2gdyne-forceFrequency%gHz", NameValueArgs.forceAmplitude, NameValueArgs.forceFrequency)
     };
     for ii = 1:length(folders)
         folder = folders{ii};
@@ -267,9 +273,9 @@ function results_saver(prefix, indexes, variables, variableNames)
                end
        end
        stru = struct(variableNames{ii}, var);
-       save(sprintf('%s%s.mat', prefix, variableNames{ii}), '-struct', 'stru');
+       save(sprintf('%s%s.mat', fileName, NameValueArgs.datetimeMarker), '-struct', 'stru', '-append');
     end
-    
+    cd(currfold)
 end
 
 function out = getVarName(var)
