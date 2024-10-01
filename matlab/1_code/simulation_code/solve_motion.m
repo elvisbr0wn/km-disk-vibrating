@@ -50,17 +50,10 @@ catch ME
 end
 
 
-
 % Loading some useful matrices
 [dr, laplacian, pressureIntegral] = domainMaker(bathDiameter, spatialResolution);
 
-% Dimensional parameters
-%forceFrequency = 100; % Oscillations of theforce in Hertz.
-%forceAmplitude = 1; % Force amplitude in cgs
-%diskMass = 10; % Mass in grams of the object
-%bathViscosity = 1;
-%Characteristic Units
-
+%Characteristic Unit
 L_unit = diskRadius; 
 M_unit = bathDensity * L_unit^3; % Mass unit. 
 %T = sqrt(rhoS * Ro^3/sigmaS); % Characteristic time
@@ -79,16 +72,6 @@ We = bathDensity * L_unit.^3 / (bathSurfaceTension * T_unit^2);
 force_adim = forceAmplitude/diskMass * T_unit^2/L_unit;
 freq_adim  = forceFrequency * T_unit;
 obj_mass_adim = diskMass/M_unit;
-
-%WeS  = rhoS*Ro^3/(sigmaS * T_unit^2); %This is for the bath/dropplet interaction.
-%Westar = rhoS * U0.^2 * Ro / sigmaS; % velocity-based weber number (to compare with literature)
-%Oh = nu*sqrt(rhoS/(sigmaS*Ro));
-
-%Cang = (Ang/180)*pi; %contact angle to be imposed
-
-%Physical parameters
-%simulationTime = 20; %Earliest possible end of simulation in characteristic units
-
 
 %Numerical Simulation parameters
 
