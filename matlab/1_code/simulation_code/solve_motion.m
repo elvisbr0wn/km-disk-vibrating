@@ -1,4 +1,45 @@
 function solve_motion(NameValueArgs)
+% SOLVE_MOTION Simulates the motion of a disk oscillating in a fluid bath.
+%   This functi on models the motion of a disk subjected to sinusoidal forces
+%   within a fluid environment using configurable parameters provided through
+%   name-value arguments.
+%
+%   Parameters (Name-Value Arguments):
+%       - diskRadius (double, default = 0.5 cm): Radius of the oscillating disk.
+%       - diskMass (double, default = 1 g): Mass of the disk in grams.
+%       - forceAmplitude (double, default = 1000 dyn): Amplitude of the sinusoidal force.
+%       - forceFrequency (double, default = 90 Hz): Frequency of the applied force.
+%       - bathDensity (double, default = 1 g/cm^3): Density of the fluid bath.
+%       - bathSurfaceTension (double, default = 72.20 dyn/cm): Surface tension of the fluid.
+%       - bathViscosity (double, default = 0.978e-2 St): Viscosity of the fluid.
+%       - g (double, default = 981 cm/s^2): Gravitational constant.
+%       - bathDiameter (double, default = 100): Diameter of the bath relative to disk radius.
+%       - spatialResolution (double, default = 50): Number of radial intervals per disk radius.
+%       - temporalResolution (double, default = 20): Number of time steps per dimensionless unit.
+%       - simulationTime (double, default = 0.01 s): Total simulation time in seconds.
+%       - debug_flag (logical, default = true): Enables/disables debugging information.
+%
+%   The script simulates the fluid motion and surface interaction with the disk, and
+%   provides visualizations and logs. The simulation considers various dimensionless
+%   numbers (Reynolds, Weber, and Froude numbers) and handles precomputed inverse matrices.
+%
+%   Outputs:
+%       Results are saved in specified directories based on the provided parameters.
+%
+%   Example:
+%       solve_motion('diskRadius', 1, 'diskMass', 2, 'forceAmplitude', 500);
+%
+%   Dependencies:
+%       This function depends on external functions such as domainMaker and 
+%       advance_one_step to create the fluid domain and advance the simulation, 
+%       respectively.
+%
+%   Author:
+%       (Your Name) - Date of Creation: (Date)
+%
+%   See also: domainMaker, advance_one_step, results_saver
+
+% Parse input arguments using name-value pairs and set default values
 
 arguments
     % Unless stated otherwise, all units are cgs. 
@@ -17,30 +58,41 @@ arguments
     NameValueArgs.simulationTime (1, 1) double = .01; % Time to be simulated in seconds
     NameValueArgs.debug_flag (1, 1) logical = true; % To show some debugging info
 end
+
+% Record the time the script is run
 tic;
 datetimeMarker = datetime('now'); datetimeMarker.Format = 'yyyyMMddmmss';
 NameValueArgs.datetimeMarker = datetimeMarker;
-% Beware! I'm adding all these names into the current scope
+
+% Record the time the script is run
 cellfun(@(f) assignin('caller', f, NameValueArgs.(f)), fieldnames(NameValueArgs));
-%Reset warning
+
+% Reset any existing warnings
 lastwarn('', '');
 
+% Prepare for file saving
 close all
 currfold = fileparts(matlab.desktop.editor.getActiveFilename);
 cd(currfold);
 
+% Add the current folder to the path
 addpath(currfold);
 precomputedInverse = nan; 
 cd ..
+% Start logging if debugging is enabled
 if debug_flag == true; diary(sprintf("../0_data/manual/Logger/solve_motion%s.txt", datetimeMarker)); end
+
+% Set up folder for data saving
 fold = fullfile(pwd, sprintf("D%dQuant%d", spatialResolution, bathDiameter));
 try
+    % Navigate to the folder and load necessary matrices
     cd(fold)
-    nr = ceil(spatialResolution*bathDiameter/2);
-    load(sprintf('DTNnew345nr%dD%drefp10.mat', nr, bathDiameter),'DTNnew345')
+    nr = ceil(spatialResolution * bathDiameter / 2);
+    load(sprintf('DTNnew345nr%dD%drefp10.mat', nr, bathDiameter), 'DTNnew345')
     DTN = DTNnew345;
     clear DTNnew345
-    % Loading precomputed inverse if exists
+
+    % Load precomputed inverse matrix if it exists
     myfile = fullfile(pwd, sprintf("dtstep=%d.mat", forceFrequency*temporalResolution)); 
     if exist(myfile, "file"); load(myfile, "precomputedInverse"); end
     cd(currfold)
@@ -50,39 +102,44 @@ catch ME
 end
 
 
-% Loading some useful matrices
+% Load useful matrices for the simulation (Laplacian and pressure integral)
 [dr, laplacian, pressureIntegral] = domainMaker(bathDiameter, spatialResolution);
 
-%Characteristic Unit
+% Define characteristic units
 L_unit = diskRadius; 
-M_unit = bathDensity * L_unit^3; % Mass unit. 
-%T = sqrt(rhoS * Ro^3/sigmaS); % Characteristic time
-T_unit = 1/forceFrequency;
-V_unit = L_unit/T_unit;
-F_unit = M_unit * L_unit/T_unit^2;
+M_unit = bathDensity * L_unit^3; % Mass unit
+T_unit = 1 / forceFrequency; % Time unit
+V_unit = L_unit / T_unit; % Velocity unit
+F_unit = M_unit * L_unit / T_unit^2; % Force unit
 
+% Store characteristic units in a struct
 UNITS = struct('length', L_unit, 'mass', M_unit, 'time', T_unit, ...
     'velocity', V_unit, 'force', F_unit);
-%Dimensionless numbers for equations
-%Dr = rhoS/rho; %Sr = sigmaS/sigma;
-Re = L_unit^2/(bathViscosity*T_unit);
-Fr = L_unit/(g * T_unit^2) * inf; % Turning off gravity
-We = bathDensity * L_unit.^3 / (bathSurfaceTension * T_unit^2); 
 
-force_adim = forceAmplitude/diskMass * T_unit^2/L_unit;
-freq_adim  = forceFrequency * T_unit;
-obj_mass_adim = diskMass/M_unit;
+% Compute dimensionless numbers
+Re = L_unit^2 / (bathViscosity * T_unit); % Reynolds number
+Fr = L_unit / (g * T_unit^2) * inf; % Froude number (gravity turned off)
+We = bathDensity * L_unit^3 / (bathSurfaceTension * T_unit^2); % Weber number
 
-%Numerical Simulation parameters
+% Compute adimensionalized force, frequency, and object mass
+force_adim = forceAmplitude / diskMass * T_unit^2 / L_unit;
+freq_adim = forceFrequency * T_unit;
+obj_mass_adim = diskMass / M_unit;
 
-dt = 1/temporalResolution; % adimensional time step
-steps = ceil(simulationTime/(dt*T_unit)); %estimated minimum number of timesteps
-if steps * nr * 8 > 1e+9; warning('Spatial resolution and simulation times might be too big to store all matrices in memory'); end
+% Set numerical simulation parameters
+dt = 1 / temporalResolution; % Adimensional time step
+steps = ceil(simulationTime / (dt * T_unit)); % Minimum number of time steps
+
+% Warn if memory usage could be large
+if steps * nr * 8 > 1e+9
+    warning('Spatial resolution and simulation times might be too big to store all matrices in memory');
+end
+
 %Inintial conditions for the fluid
-
 etaInitial = zeros(nr,1); %initial surface elevation
 phiInitial = zeros(nr,1); %initial surface potential
 
+% Define the current state of the system
 current_conditions = struct( ...
     "dt", dt(1), "time", 0, ...
     "center_of_mass", 0, "center_of_mass_velocity", 0, ...
@@ -91,7 +148,7 @@ current_index = 1; %iteration counter
 recordedConditions = cell(steps, 1);
 recordedConditions{current_index} = current_conditions;
 
-
+% Store problem constants for use in the simulation
 PROBLEM_CONSTANTS = struct("froude", Fr, "weber", We, ...
     "reynolds", Re, "dr", dr, "DEBUG_FLAG", debug_flag, ...
     "nr", nr, "contact_points", spatialResolution+1, ... 
@@ -103,7 +160,7 @@ PROBLEM_CONSTANTS = struct("froude", Fr, "weber", We, ...
 fprintf("Starting simulation on %s\n", pwd);
 
 
-% Names of the variables to be stored
+% Names of the variables to be saved
 savingvarNames = { ...
     getVarName(NameValueArgs), ...
     getVarName(PROBLEM_CONSTANTS), ...
@@ -114,7 +171,7 @@ savingvarNames = { ...
 variableValues = cell(size(savingvarNames));
 
 
-%% Main Loop
+%% Main Simulation Loop
 try
     while (recordedConditions{current_index}.time * T_unit < simulationTime) 
 
@@ -137,19 +194,7 @@ try
             z = recordedConditions{current_index}.center_of_mass;
             y = [z, z+1/10, z+1/10, z];
             fill(x, y, 'k');
-            % xs = dr*(0:nlmax(tentative_index+1)-1);
-            % zsplot = zs(1:nlmax(tentative_index+1))+RvTent+obj_height(tentative_index+1);
-            % plot([-fliplr(xs(2:end)),xs],[flipud(zsplot(2:end));zsplot],'k','Linewidth',2);
-            % hold on
-            % thetaplot = linspace(0, thetaVec(end), 200);%-%-0:thetaVec(end)/400:thetaVec(end);
-            % %-%-xsTop = xsoftheta(thetaplot,A2New,A3New);
-            % %-%-zsTop = zsoftheta(thetaplot,A2New,A3New);
-            % zsTop = zs_from_spherical(thetaplot, amplitudes_new);
-            % xsTop = r_from_spherical(thetaplot, amplitudes_new); 
-            % plot([-xsTop(end:-1:2), xsTop],[zsTop(end:-1:2), zsTop]+zTent,'k','Linewidth',2);
-            % width = min(nr, 200);
-            % plot([-fliplr(xplot(2:width)),xplot(1:width)],[flipud(eta_accepted(2:width));eta_accepted(1:width)],'LineWidth',2);
-            % hold off
+  
             axis equal
             title(sprintf('   t = %0.3f s, z = %.2f', recordedConditions{current_index}.time*T_unit, z*L_unit),'FontSize',16);
             grid on
