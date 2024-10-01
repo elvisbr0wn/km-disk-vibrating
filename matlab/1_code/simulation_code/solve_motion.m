@@ -3,10 +3,10 @@ function solve_motion(NameValueArgs)
 arguments
     % Unless stated otherwise, all units are cgs. 
     % Default values amount to a water bath
-    NameValueArgs.diskRadius (1, 1) double = 1 % Radius of the oscillating disk, in cm
-    NameValueArgs.diskMass (1, 1) double = 5 % Mass in grams of the disk
-    NameValueArgs.forceAmplitude (1, 1) double = 2000 % Amplitude of sinusoidal force applied to disk (in dynes)
-    NameValueArgs.forceFrequency (1, 1) double = 20 % Frequency of sinusoidal force in Hz
+    NameValueArgs.diskRadius (1, 1) double = .5 % Radius of the oscillating disk, in cm
+    NameValueArgs.diskMass (1, 1) double = 1 % Mass in grams of the disk
+    NameValueArgs.forceAmplitude (1, 1) double = 1000 % Amplitude of sinusoidal force applied to disk (in dynes)
+    NameValueArgs.forceFrequency (1, 1) double = 90 % Frequency of sinusoidal force in Hz
     NameValueArgs.bathDensity (1, 1) double = 1 % Density of bath's fluid in g/cm^3
     NameValueArgs.bathSurfaceTension (1, 1) double = 72.20 % For water, in dynes/cm
     NameValueArgs.bathViscosity (1, 1) double = 0.978e-2 % Viscosity in Stokes (cgs)
@@ -14,10 +14,10 @@ arguments
     NameValueArgs.bathDiameter (1, 1) double = 100 % Diameter of the bath wrt to disk Radius
     NameValueArgs.spatialResolution (1, 1) double = 50 % Number of numerical radial intervals in one disk radius
     NameValueArgs.temporalResolution (1, 1) double = 20; % Number of temporal steps in one adimensional unit
-    NameValueArgs.simulationTime (1, 1) double = 1; % Time to be simulated in seconds
+    NameValueArgs.simulationTime (1, 1) double = .01; % Time to be simulated in seconds
     NameValueArgs.debug_flag (1, 1) logical = true; % To show some debugging info
 end
-
+tic;
 datetimeMarker = datetime('now'); datetimeMarker.Format = 'yyyyMMddmmss';
 NameValueArgs.datetimeMarker = datetimeMarker;
 % Beware! I'm adding all these names into the current scope
@@ -26,10 +26,13 @@ cellfun(@(f) assignin('caller', f, NameValueArgs.(f)), fieldnames(NameValueArgs)
 lastwarn('', '');
 
 close all
-currfold = pwd;
+currfold = fileparts(matlab.desktop.editor.getActiveFilename);
+cd(currfold);
+
 addpath(currfold);
 precomputedInverse = nan; 
 cd ..
+if debug_flag == true; diary(sprintf("../0_data/manual/Logger/solve_motion%s.txt", datetimeMarker)); end
 fold = fullfile(pwd, sprintf("D%dQuant%d", spatialResolution, bathDiameter));
 try
     cd(fold)
@@ -89,8 +92,8 @@ obj_mass_adim = diskMass/M_unit;
 
 %Numerical Simulation parameters
 
-dt = T_unit/temporalResolution; %
-steps = ceil(simulationTime/dt); %estimated minimum number of timesteps
+dt = 1/temporalResolution; % adimensional time step
+steps = ceil(simulationTime/(dt*T_unit)); %estimated minimum number of timesteps
 if steps * nr * 8 > 1e+9; warning('Spatial resolution and simulation times might be too big to store all matrices in memory'); end
 %Inintial conditions for the fluid
 
@@ -138,7 +141,7 @@ try
         current_index = current_index + 1;
 
         if PROBLEM_CONSTANTS.DEBUG_FLAG == true
-            width = 1.5; 
+            width = 5; 
             width = min(nr, ceil(width*spatialResolution));
             eta = recordedConditions{current_index}.bath_surface;
             eta = [flipud(eta(2:width)); eta(1:width)];
@@ -218,8 +221,9 @@ end % end while catch
 %save('ProblemConditions.mat', "NameValueArgs", ...
 %    "dt", "UNITS", "PROBLEM_CONSTANTS");
 mypwd = split(pwd, "1_code"); mypwd = mypwd{2};
-fprintf("Finished simulation on %s. Time elapsed: %0.2f minutes\n", mypwd, simul_time/60);
+fprintf("Finished simulation on %s. Time elapsed: %0.2f minutes\n", mypwd, toc/60);
 cd(currfold)
+diary off;
 
 
 end
@@ -227,10 +231,10 @@ end
 function results_saver(fileName, indexes, variables, variableNames, NameValueArgs)
     currfold = pwd;
     folders = { ...
-        sprintf("rho%.2fgcm3-sigma%.2fdynecm-nu%%.4fSt", ...
+        sprintf("rho%.2fgcm3-sigma%.2fdynecm-nu%.4fSt", ...
         NameValueArgs.bathDensity, NameValueArgs.bathSurfaceTension, NameValueArgs.bathViscosity), ...
         sprintf("diskRadius%.2gcm-diskMass%.2gg", NameValueArgs.diskRadius, NameValueArgs.diskMass), ...
-        sprintf("forceAmplitude%.2gdyne-forceFrequency%gHz", NameValueArgs.forceAmplitude, NameValueArgs.forceFrequency)
+        sprintf("forceAmplitude%gdyne-forceFrequency%gHz", NameValueArgs.forceAmplitude, NameValueArgs.forceFrequency)
     };
     for ii = 1:length(folders)
         folder = folders{ii};
@@ -241,23 +245,29 @@ function results_saver(fileName, indexes, variables, variableNames, NameValueArg
     if indexes(2) == 1
         indexes = indexes(2:end); 
     end
+    stru = struct();
     for ii = 1:length(variables)
        var = variables{ii};
-       switch length(size(var))
-           case 1
-               if ~isstruct(var)
-                   var = var(indexes);
-               end
-           case 2
-               if iscell(var)
-                   var = var{:, indexes};
-               else
-                   var = var(:, indexes);
-               end
+       if max(size(var)) > 1
+           if ~isstruct(var)
+               var = var(indexes);
+           elseif iscell(var)
+               var = var{:, indexes};
+           else
+               var = var(:, indexes);
+           end
        end
-       stru = struct(variableNames{ii}, var);
-       save(sprintf('%s%s.mat', fileName, NameValueArgs.datetimeMarker), '-struct', 'stru', '-append');
+       stru.(variableNames{ii}) = var;% = struct(variableNames{ii}, var);
     end
+    
+    my_file = sprintf('%s%s.mat', fileName, NameValueArgs.datetimeMarker);
+       
+   if exist(my_file, 'file')
+       save(my_file, '-struct', 'stru', '-append');
+   else
+       save(my_file, '-struct', 'stru');
+   end
+           
     cd(currfold)
 end
 
