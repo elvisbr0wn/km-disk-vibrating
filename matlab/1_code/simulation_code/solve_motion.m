@@ -212,14 +212,6 @@ catch ME
     save(sprintf("error_log%s.mat", datetimeMarker),'ME');
 end % end while catch
 
-%simul_time = toc(tstart);
-%simul_time = simul_time - tstart;
-
-
-
-%results_saver("", 1:(current_index-1), variableValues, savingvarNames);
-%save('ProblemConditions.mat', "NameValueArgs", ...
-%    "dt", "UNITS", "PROBLEM_CONSTANTS");
 mypwd = split(pwd, "1_code"); mypwd = mypwd{2};
 fprintf("Finished simulation on %s. Time elapsed: %0.2f minutes\n", mypwd, toc/60);
 cd(currfold)
