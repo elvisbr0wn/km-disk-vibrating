@@ -5,19 +5,19 @@ function solve_motion(NameValueArgs)
 %   name-value arguments.
 %
 %   Parameters (Name-Value Arguments):
-%       - diskRadius (double, default = 0.5 cm): Radius of the oscillating disk.
-%       - diskMass (double, default = 1 g): Mass of the disk in grams.
-%       - forceAmplitude (double, default = 1000 dyn): Amplitude of the sinusoidal force.
-%       - forceFrequency (double, default = 90 Hz): Frequency of the applied force.
-%       - bathDensity (double, default = 1 g/cm^3): Density of the fluid bath.
-%       - bathSurfaceTension (double, default = 72.20 dyn/cm): Surface tension of the fluid.
-%       - bathViscosity (double, default = 0.978e-2 St): Viscosity of the fluid.
-%       - g (double, default = 981 cm/s^2): Gravitational constant.
-%       - bathDiameter (double, default = 100): Diameter of the bath relative to disk radius.
-%       - spatialResolution (double, default = 50): Number of radial intervals per disk radius.
-%       - temporalResolution (double, default = 20): Number of time steps per dimensionless unit.
-%       - simulationTime (double, default = 0.01 s): Total simulation time in seconds.
-%       - debug_flag (logical, default = true): Enables/disables debugging information.
+%       - diskRadius: Radius of the oscillating disk.
+%       - diskMass: Mass of the disk in grams.
+%       - forceAmplitude: Amplitude of the sinusoidal force.
+%       - forceFrequency: Frequency of the applied force.
+%       - bathDensity: Density of the fluid bath.
+%       - bathSurfaceTension: Surface tension of the fluid.
+%       - bathViscosity: Viscosity of the fluid.
+%       - g: Gravitational constant.
+%       - bathDiameter: Diameter of the bath relative to disk radius.
+%       - spatialResolution: Number of radial intervals per disk radius.
+%       - temporalResolution: Number of time steps per dimensionless unit.
+%       - simulationTime: Total simulation time in seconds.
+%       - debug_flag: Enables/disables debugging information.
 %
 %   The script simulates the fluid motion and surface interaction with the disk, and
 %   provides visualizations and logs. The simulation considers various dimensionless
@@ -35,7 +35,7 @@ function solve_motion(NameValueArgs)
 %       respectively.
 %
 %   Author:
-%       (Your Name) - Date of Creation: (Date)
+%       Elvis Aguero - Date of Creation: Oct 10th, 2024.
 %
 %   See also: domainMaker, advance_one_step, results_saver
 
@@ -123,6 +123,7 @@ We = bathDensity * L_unit^3 / (bathSurfaceTension * T_unit^2); % Weber number
 
 % Compute adimensionalized force, frequency, and object mass
 force_adim = forceAmplitude / diskMass * T_unit^2 / L_unit;
+surface_force_adim = 2*pi*diskRadius*bathSurfaceTension/diskMass * T_unit^2 / L_unit;
 freq_adim = forceFrequency * T_unit;
 obj_mass_adim = diskMass / M_unit;
 
@@ -153,6 +154,7 @@ PROBLEM_CONSTANTS = struct("froude", Fr, "weber", We, ...
     "reynolds", Re, "dr", dr, "DEBUG_FLAG", debug_flag, ...
     "nr", nr, "contact_points", spatialResolution+1, ... 
     "force_amplitude", force_adim, "force_frequency", freq_adim, ...
+    "surface_force_constant", surface_force_adim, ...
     "DTN", DTN, "laplacian", laplacian, "obj_mass", obj_mass_adim, ...
     "pressure_integral", pressureIntegral(spatialResolution+1, :), ...
     "precomputedInverse", precomputedInverse);
