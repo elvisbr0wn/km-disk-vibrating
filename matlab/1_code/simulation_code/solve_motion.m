@@ -108,7 +108,7 @@ end
 % Define characteristic units
 L_unit = diskRadius; 
 M_unit = bathDensity * L_unit^3; % Mass unit
-T_unit = 1 / forceFrequency; % Time unit
+T_unit = 1 / (2*pi*forceFrequency); % Time unit (1 / angular frequency)
 V_unit = L_unit / T_unit; % Velocity unit
 F_unit = M_unit * L_unit / T_unit^2; % Force unit
 
@@ -124,7 +124,7 @@ We = bathDensity * L_unit^3 / (bathSurfaceTension * T_unit^2); % Weber number
 % Compute adimensionalized force, frequency, and object mass
 force_adim = forceAmplitude / diskMass * T_unit^2 / L_unit;
 surface_force_adim = 2*pi*diskRadius*bathSurfaceTension/diskMass * T_unit^2 / L_unit;
-freq_adim = forceFrequency * T_unit;
+freq_adim = forceFrequency * T_unit*(2*pi);
 obj_mass_adim = diskMass / M_unit;
 
 % Set numerical simulation parameters
