@@ -118,7 +118,7 @@ UNITS = struct('length', L_unit, 'mass', M_unit, 'time', T_unit, ...
 
 % Compute dimensionless numbers
 Re = L_unit^2 / (bathViscosity * T_unit); % Reynolds number
-Fr = L_unit / (g * T_unit^2) * inf; % Froude number (gravity turned off)
+Fr = L_unit / (g * T_unit^2); % Froude number
 We = bathDensity * L_unit^3 / (bathSurfaceTension * T_unit^2); % Weber number
 
 % Compute adimensionalized force, frequency, and object mass
