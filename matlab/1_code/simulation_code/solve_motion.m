@@ -64,9 +64,9 @@ tic;
 datetimeMarker = datetime('now'); datetimeMarker.Format = 'yyyyMMddmmss';
 NameValueArgs.datetimeMarker = datetimeMarker;
 
-% Record the time the script is run
+% Add arguments to the current scope
 cellfun(@(f) assignin('caller', f, NameValueArgs.(f)), fieldnames(NameValueArgs));
-
+NameValueArgs.forceFrequency = NameValueArgs.forceFrequency * 2 * pi; % We use angular frequency
 % Reset any existing warnings
 lastwarn('', '');
 
@@ -108,7 +108,7 @@ end
 % Define characteristic units
 L_unit = diskRadius; 
 M_unit = bathDensity * L_unit^3; % Mass unit
-T_unit = 1 / forceFrequency; % Time unit
+T_unit = 1 / forceFrequency; % Time unit (1 over angular frequency)
 V_unit = L_unit / T_unit; % Velocity unit
 F_unit = M_unit * L_unit / T_unit^2; % Force unit
 
@@ -118,7 +118,7 @@ UNITS = struct('length', L_unit, 'mass', M_unit, 'time', T_unit, ...
 
 % Compute dimensionless numbers
 Re = L_unit^2 / (bathViscosity * T_unit); % Reynolds number
-Fr = L_unit / (g * T_unit^2) * inf; % Froude number (gravity turned off)
+Fr = L_unit / (g * T_unit^2); % Froude number (gravity turned off)
 We = bathDensity * L_unit^3 / (bathSurfaceTension * T_unit^2); % Weber number
 
 % Compute adimensionalized force, frequency, and object mass
