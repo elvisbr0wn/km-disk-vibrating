@@ -124,7 +124,7 @@ We = bathDensity * L_unit^3 / (bathSurfaceTension * T_unit^2); % Weber number
 % Compute adimensionalized force, frequency, and object mass
 force_adim = forceAmplitude / diskMass * T_unit^2 / L_unit;
 surface_force_adim = 2*pi*diskRadius*bathSurfaceTension/diskMass * T_unit^2 / L_unit;
-freq_adim = forceFrequency * T_unit*(2*pi);
+freq_adim = forceFrequency * T_unit;
 obj_mass_adim = diskMass / M_unit;
 
 % Set numerical simulation parameters
