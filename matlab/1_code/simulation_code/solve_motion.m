@@ -72,7 +72,7 @@ lastwarn('', '');
 
 % Prepare for file saving
 close all
-currfold = fileparts(matlab.desktop.editor.getActiveFilename);
+currfold = fullfile(fileparts(mfilename('fullpath'))); %fileparts(matlab.desktop.editor.getActiveFilename);
 cd(currfold);
 
 % Add the current folder to the path
