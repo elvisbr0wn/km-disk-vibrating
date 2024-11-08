@@ -195,7 +195,7 @@ checkpoints = (1:19)/20;
 for pp = 1:length(checkpoints)
 [~, checkpoints(pp)] = min(abs((4:nr) - nr*(checkpoints(pp) + .01))); 
 end
-for k = 4:nr
+parfor k = 4:nr
     if ismember(k, checkpoints); disp(k/nr); end
     Line = zeros(1,nr);
     
