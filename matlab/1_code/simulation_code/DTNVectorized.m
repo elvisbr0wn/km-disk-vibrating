@@ -195,6 +195,7 @@ checkpoints = (1:19)/20;
 for pp = 1:length(checkpoints)
 [~, checkpoints(pp)] = min(abs((4:nr) - nr*(checkpoints(pp) + .01))); 
 end
+
 parfor k = 4:nr
     if ismember(k, checkpoints); disp(k/nr); end
     Line = zeros(1,nr);
@@ -241,7 +242,7 @@ parfor k = 4:nr
     %[ii_grid, l_grid] = ndgrid(ii, l_vals);
     radn = abs(sqrt((rn(k) + ii .* cos(l_vals) / refp).^2 + (ii .* sin(l_vals) / refp).^2));
     idxs = floor(radn);
-    w1 = min(max(0, radn - idxs), 1);
+    w1 = min(max(0, radn - idxs), 1); w2 = w1.^2; w3 = w1.^3;
     
     % Initialize Line vector update values
     LineUpdate = zeros(1, nr);
@@ -249,20 +250,21 @@ parfor k = 4:nr
     
     % Accumulate updates for each index in Line based on conditions
     cond1 = idxs < 0.5; 
-    LineUpdate = LineUpdate + sliceAndSum(-(3 * w1.^3 / 4 - 7 * w1.^2 / 4 + 1) .* Kern, cond1, idxs+1, nr);
-    LineUpdate = LineUpdate + sliceAndSum(-(-w1 + 2) .* w1.^2 .* Kern, cond1, idxs+2, nr);
-    LineUpdate = LineUpdate + sliceAndSum(-(w1 - 1) .* w1.^2 / 4 .* Kern, cond1, idxs+3, nr);
+    
+    LineUpdate = LineUpdate + sliceAndSum(-(3 * w3 / 4 - 7 * w2 / 4 + 1) .* Kern, cond1, idxs+1, nr);
+    LineUpdate = LineUpdate + sliceAndSum(-(-w3 + 2 * w2)  .* Kern, cond1, idxs+2, nr);
+    LineUpdate = LineUpdate + sliceAndSum(-(w3 - w2) / 4 .* Kern, cond1, idxs+3, nr);
     
     
     cond2 = (idxs >= 0.5) & (idxs < nr); 
     
-    LineUpdate = LineUpdate + sliceAndSum(-(-w1.^2 / 6 + w1 / 2 - 1/3) .* w1 .* Kern, cond2, idxs, nr);
-    LineUpdate = LineUpdate + sliceAndSum(-(w1.^3 / 2 - w1.^2 - w1 / 2 + 1) .* Kern, cond2, idxs+1, nr);
+    LineUpdate = LineUpdate + sliceAndSum(-(-w3 / 6 + w2 / 2 - w1/3) .* Kern, cond2, idxs, nr);
+    LineUpdate = LineUpdate + sliceAndSum(-(w3 / 2 - w2 - w1 / 2 + 1) .* Kern, cond2, idxs+1, nr);
     
     cond3 = (idxs < nr - 1) & (idxs >= 0.5); 
     cond4 = (idxs < nr - 2) & (idxs >= 0.5); 
-    LineUpdate = LineUpdate + sliceAndSum(-(-w1.^2 / 2 + w1 / 2 + 1) .* w1 .* Kern, cond3, idxs+2, nr);
-    LineUpdate = LineUpdate + sliceAndSum(-(w1.^2 - 1) .* w1 / 6 .* Kern, cond4, idxs+3, nr);
+    LineUpdate = LineUpdate + sliceAndSum(-(-w3 / 2 + w2 / 2 + w1) .* Kern, cond3, idxs+2, nr);
+    LineUpdate = LineUpdate + sliceAndSum(-(w3 - w1) / 6 .* Kern, cond4, idxs+3, nr);
     
     
     Line = Line + LineUpdate;
@@ -273,8 +275,6 @@ parfor k = 4:nr
     Line(k) = Line(k) + 2 / (4 * dr + drp);
     DTNnew345(k,:) = Line;
 end
-    
-   
 
 save(['DTNnew345nr',num2str(nr),'D',num2str(D),'refp',num2str(refp),'.mat'],'DTNnew345')
 % reStartAt = nr+1;

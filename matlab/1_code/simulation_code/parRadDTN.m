@@ -155,7 +155,7 @@ if true || runNumber == 0
     % else
     %     disp('A pool already exists.')
     % end
-    
+    full_counter = 0;
     for ll = 4:poolnum*workerload:nr 
         for k = ll:min(ll+poolnum*workerload-1,nr)
             k/nr;
@@ -184,20 +184,15 @@ if true || runNumber == 0
                     idx1 = floor(radn);
                     w1 = min(max(0,radn - idx1),1);
                     if idx1 < .5
-                        
                         Line(idx1+1) = Line(idx1+1) - (3*w1^3/4-7*w1^2/4+1)*    Kern;
                         Line(idx1+2) = Line(idx1+2) - (-w1+2)*w1^2*             Kern;
                         Line(idx1+3) = Line(idx1+3) - (w1-1)*w1^2/4*            Kern;
-                        
                     elseif idx1<nr
-                        
                         Line(idx1)   = Line(idx1)   - (-w1^2/6+w1/2-1/3)*w1*    Kern;
                         Line(idx1+1) = Line(idx1+1) - (w1^3/2-w1^2-w1/2+1)*     Kern;
                         if idx1<nr-1
-                            
                             Line(idx1+2) = Line(idx1+2) - (-w1^2/2+w1/2+1)*w1*  Kern;
                             if idx1<nr-2
-                                
                                 Line(idx1+3) = Line(idx1+3) - (w1^2-1)*w1/6*    Kern;
                             end
                         end
