@@ -2,11 +2,9 @@ function DTNnew345 = DTNVectorized(nr, D)
 
 rn = 0:nr+1;
 dr = D/(2*nr);
-%load('dr.mat','dr')
 
 refp = 10;
-num_batches = 5;
-%save('refp.mat','refp')
+num_batches = 20; % Number of batches to reduce memory footprint
 
 %Finding the DTN operator
 drp = dr/refp;
@@ -21,25 +19,25 @@ DTNnew345=zeros(nr,nr);
 %% Integrating away from the singularity
 k = 1;
 % Define the ii range as a vector and compute idx1 for all values of ii at once
-ii_vals = 2:(rn(k) + nr + 1);
-idx1_vals = round(ii_vals);
+i_valsk1 = 2:(rn(k) + nr + 1);
+idx1_vals = round(i_valsk1);
 
 % Preallocate arrays for computed values for each term
-term_0 = (-ii_vals.^2 / 2 - ii_vals - 1/3) .* log((ii_vals + 1) ./ ii_vals) ...
-         + (ii_vals.^2 / 6 + ii_vals / 2 + 1/3) .* (1 - ii_vals ./ (ii_vals + 1)) ...
-         - (ii_vals + 0.5) / 6 + ii_vals / 2 + 1/2;
+term_0 = (-i_valsk1.^2 / 2 - i_valsk1 - 1/3) .* log((i_valsk1 + 1) ./ i_valsk1) ...
+         + (i_valsk1.^2 / 6 + i_valsk1 / 2 + 1/3) .* (1 - i_valsk1 ./ (i_valsk1 + 1)) ...
+         - (i_valsk1 + 0.5) / 6 + i_valsk1 / 2 + 1/2;
 
-term_1 = (3 * ii_vals.^2 / 2 + 2 * ii_vals - 1/2) .* log((ii_vals + 1) ./ ii_vals) ...
-         + (-ii_vals.^2 / 2 - ii_vals + 1/2 + 1 ./ ii_vals) .* (1 - ii_vals ./ (ii_vals + 1)) ...
-         + (ii_vals + 0.5) / 2 - 3 * ii_vals / 2 - 1;
+term_1 = (3 * i_valsk1.^2 / 2 + 2 * i_valsk1 - 1/2) .* log((i_valsk1 + 1) ./ i_valsk1) ...
+         + (-i_valsk1.^2 / 2 - i_valsk1 + 1/2 + 1 ./ i_valsk1) .* (1 - i_valsk1 ./ (i_valsk1 + 1)) ...
+         + (i_valsk1 + 0.5) / 2 - 3 * i_valsk1 / 2 - 1;
 
-term_2 = (-3 * ii_vals.^2 / 2 - ii_vals + 1) .* log((ii_vals + 1) ./ ii_vals) ...
-         + (ii_vals.^2 / 2 + ii_vals / 2 - 1) .* (1 - ii_vals ./ (ii_vals + 1)) ...
-         - (ii_vals + 0.5) / 2 + 3 * ii_vals / 2 + 1/2;
+term_2 = (-3 * i_valsk1.^2 / 2 - i_valsk1 + 1) .* log((i_valsk1 + 1) ./ i_valsk1) ...
+         + (i_valsk1.^2 / 2 + i_valsk1 / 2 - 1) .* (1 - i_valsk1 ./ (i_valsk1 + 1)) ...
+         - (i_valsk1 + 0.5) / 2 + 3 * i_valsk1 / 2 + 1/2;
 
-term_3 = (ii_vals.^2 / 2 - 1/6) .* log((ii_vals + 1) ./ ii_vals) ...
-         + (-ii_vals.^2 + 1) / 6 .* (1 - ii_vals ./ (ii_vals + 1)) ...
-         + (ii_vals + 0.5) / 6 - ii_vals / 2;
+term_3 = (i_valsk1.^2 / 2 - 1/6) .* log((i_valsk1 + 1) ./ i_valsk1) ...
+         + (-i_valsk1.^2 + 1) / 6 .* (1 - i_valsk1 ./ (i_valsk1 + 1)) ...
+         + (i_valsk1 + 0.5) / 6 - i_valsk1 / 2;
 
 
 % Collect indices and values for accumarray
@@ -78,11 +76,15 @@ i_vals21 = (1:2 * refp)';  % Column vector for i values
 i_vals22 = ((2 * refp + 1) : ((rn(2) + nr) * refp))';  % Column vector for ii
 i_vals31 = (1:2 * refp)';  % Column vector for i values
 i_vals32 = (2 * refp + 1 : (rn(3) + nr) * refp)';  % Column vector for ii
+i_valsk1 = (1:2*refp).';    % Column vector for ii (transposed to column)
+
 % Computing kernels
 Kern21 = 2 * (1 ./ (i_vals21 - 1/2) - 1 ./ (i_vals21 + 1/2));  
 Kern22 = 2 * (1 ./ (i_vals22 - 1/2) - 1 ./ (i_vals22 + 1/2));  
 Kern31 = 2 * (1 ./ (i_vals31 - 1/2) - 1 ./ (i_vals31 + 1/2));  
 Kern32 = 2 * (1 ./ (i_vals32 - 1/2) - 1 ./ (i_vals32 + 1/2));  
+Kernk1 = 2 * (1 ./ (i_valsk1 - 1/2) - 1 ./ (i_valsk1 + 1/2));  % Column vector
+
 % Define l values and trigonometric terms
 l_vals = dtheta / 2 : dtheta : pi - dtheta / 4;
 total_l_vals = length(l_vals);
@@ -94,11 +96,15 @@ sin_l = sin(l_vals);
 % Initialize Line update vector
 LineUpdate2 = zeros(1, nr);
 LineUpdate3 = zeros(1, nr);
-LineUpdatek = zeros(1, nr);
 
 % Define @sliceAndSum function for accumulating updates
 sliceAndSum = @(expression, condition, idx, nr) accumarray(idx(condition), expression(condition), [nr, 1])';
 % Loop over batches of l_vals
+checkpoints = (1:9)/10;
+for pp = 1:length(checkpoints)
+[~, checkpoints(pp)] = min(abs((4:nr) - nr*(checkpoints(pp) + .01))); 
+end
+
 for batch = 1:num_batches
     k = 2;
     % Determine the range for this batch in l_vals
@@ -202,7 +208,72 @@ for batch = 1:num_batches
     LineUpdate3 = LineUpdate3 + sliceAndSum(-(w3 - w1) / 6 .* Kern32, cond4, idxs + 3, nr);
 
 
+
+    %% Now k >= 4
+    parfor k = 4:nr
+        if ismember(k, checkpoints); disp([batch, k/nr]); end
+        Line = zeros(1,nr);
+        
+        radn_vals = abs(sqrt((rn(k) + i_valsk1 .* cos_l_batch / refp).^2 + (i_valsk1 .* sin_l_batch / refp).^2));
+        x1_vals = i_valsk1 .* cos_l_batch / refp;  % Matrix of x1 values
+        posr_vals = radn_vals - rn(k);     % Matrix of posr values
+
+        % Vectorized update for Line(k-2)
+        Line(k-2) = Line(k-2) - sum(((2 - posr_vals - 2 * posr_vals.^2 + posr_vals.^3) .* posr_vals - 2 * x1_vals) ./ 24 .* Kernk1, 'all');
+        
+        % Vectorized update for Line(k-1)
+        Line(k-1) = Line(k-1) - sum((4 * (-4 + 4 * posr_vals + posr_vals.^2 - posr_vals.^3) .* posr_vals + 16 * x1_vals) ./ 24 .* Kernk1, 'all');
+        
+        % Vectorized update for Line(k)
+        Line(k) = Line(k) - sum((posr_vals.^2 - 5) .* posr_vals.^2 / 4 .* Kernk1, 'all');
+        
+        % Conditional vectorized updates for Line(k+1) and Line(k+2)
+        if k < nr - 0.5
+            Line(k+1) = Line(k+1) - sum((4 * (4 + 4 * posr_vals - posr_vals.^2 - posr_vals.^3) .* posr_vals - 16 * x1_vals) ./ 24 .* Kernk1, 'all');
+            if k < nr - 1.5
+                Line(k+2) = Line(k+2) - sum(((-2 - posr_vals + 2 * posr_vals.^2 + posr_vals.^3) .* posr_vals + 2 * x1_vals) ./ 24 .* Kernk1, 'all');
+            end
+        end
+    
+        i_valsk2 = ((2*refp+1):((rn(k)+nr)*refp))';
+        
+        % Compute Kernels and radn values for all combinations of ii and l
+        Kernk2 = 2 * (1 ./ (i_valsk2 - 1/2) - 1 ./ (i_valsk2 + 1/2));        
+        
+        radn = abs(sqrt((rn(k) + i_valsk2 .* cos_l_batch / refp).^2 + (i_valsk2 .* sin_l_batch / refp).^2));
+        idxs = floor(radn); 
+        w1 = min(max(0, radn - idxs), 1); w2 = w1.^2; w3 = w1.^3;
+        
+        % Initialize Line vector update values
+        LineUpdatek = zeros(1, nr);
+        
+        % Accumulate updates for each index in Line based on conditions
+        cond1 = idxs < 0.5; 
+        
+        LineUpdatek = LineUpdatek + sliceAndSum(-(3 * w3 / 4 - 7 * w2 / 4 + 1) .* Kernk2, cond1, idxs+1, nr);
+        LineUpdatek = LineUpdatek + sliceAndSum(-(-w3 + 2 * w2)  .* Kernk2, cond1, idxs+2, nr);
+        LineUpdatek = LineUpdatek + sliceAndSum(-(w3 - w2) / 4 .* Kernk2, cond1, idxs+3, nr);
+        
+        
+        cond2 = (idxs >= 0.5) & (idxs < nr); 
+        
+        LineUpdatek = LineUpdatek + sliceAndSum(-(-w3 / 6 + w2 / 2 - w1/3) .* Kernk2, cond2, idxs, nr);
+        LineUpdatek = LineUpdatek + sliceAndSum(-(w3 / 2 - w2 - w1 / 2 + 1) .* Kernk2, cond2, idxs+1, nr);
+        
+        cond3 = (idxs < nr - 1) & (idxs >= 0.5); 
+        cond4 = (idxs < nr - 2) & (idxs >= 0.5); 
+        LineUpdatek = LineUpdatek + sliceAndSum(-(-w3 / 2 + w2 / 2 + w1) .* Kernk2, cond3, idxs+2, nr);
+        LineUpdatek = LineUpdatek + sliceAndSum(-(w3 - w1) / 6 .* Kernk2, cond4, idxs+3, nr);
+        
+        Line = Line + LineUpdatek;
+        
+        % Final adjustments to Line
+        Line = dtheta / (2 * pi * drp) * Line;
+        DTNnew345(k,:) = DTNnew345(k, :) + Line;
+    end
+
 end
+%disp(full_counter);
 k = 2;
 DTNnew345(k, :) = dtheta / (2 * pi * drp) * (DTNnew345(k, :) + LineUpdate2);
 DTNnew345(k, k) = DTNnew345(k, k) + 2 / (4 * dr + drp);
@@ -210,105 +281,9 @@ k = 3;
 DTNnew345(k, :) = dtheta / (2 * pi * drp) * (DTNnew345(k, :) + LineUpdate3);
 DTNnew345(k, k) = DTNnew345(k, k) + 2 / (4 * dr + drp);
 
-%% Now k>= 4
-% % Shut down existing parallel pool.
-% if ~isempty(gcp('nocreate'))
-%     delete(gcp);
-% else
-%     disp('No pool exists.')
-% end
-% % Create a new parallel pool.
-% if isempty(gcp('nocreate'))
-%     parpool(poolnum)
-% else
-%     disp('A pool already exists.')
-% end
-checkpoints = (1:19)/20;
-for pp = 1:length(checkpoints)
-[~, checkpoints(pp)] = min(abs((4:nr) - nr*(checkpoints(pp) + .01))); 
-end
-
-for k = 4:nr
-    if ismember(k, checkpoints); disp(k/nr); end
-    Line = zeros(1,nr);
-    
-    % Define vectors for ii and l values
-    ii_vals = (1:2*refp).';                       % Column vector for ii (transposed to column)
-    l_vals = dtheta/2 : dtheta : pi - dtheta/4;   % Row vector for l
-    
-    % Calculate Kern for all ii values
-    Kernk1 = 2 * (1 ./ (ii_vals - 1/2) - 1 ./ (ii_vals + 1/2));  % Column vector
-    
-    % Compute radn, x1, and posr for each (ii, l) combination
-    cos_l = cos(l_vals);  % Row vector of cosines of l
-    sin_l = sin(l_vals);  % Row vector of sines of l
-    
-    radn_vals = abs(sqrt((rn(k) + ii_vals * cos_l / refp).^2 + (ii_vals * sin_l / refp).^2));
-    x1_vals = ii_vals * cos_l / refp;  % Matrix of x1 values
-    posr_vals = radn_vals - rn(k);     % Matrix of posr values
-    
-    % Vectorized update for Line(k-2)
-    Line(k-2) = Line(k-2) - sum(((2 - posr_vals - 2 * posr_vals.^2 + posr_vals.^3) .* posr_vals - 2 * x1_vals) ./ 24 .* Kernk1, 'all');
-    
-    % Vectorized update for Line(k-1)
-    Line(k-1) = Line(k-1) - sum((4 * (-4 + 4 * posr_vals + posr_vals.^2 - posr_vals.^3) .* posr_vals + 16 * x1_vals) ./ 24 .* Kernk1, 'all');
-    
-    % Vectorized update for Line(k)
-    Line(k) = Line(k) - sum((posr_vals.^2 - 5) .* posr_vals.^2 / 4 .* Kernk1, 'all');
-    
-    % Conditional vectorized updates for Line(k+1) and Line(k+2)
-    if k < nr - 0.5
-        Line(k+1) = Line(k+1) - sum((4 * (4 + 4 * posr_vals - posr_vals.^2 - posr_vals.^3) .* posr_vals - 16 * x1_vals) ./ 24 .* Kernk1, 'all');
-        if k < nr - 1.5
-            Line(k+2) = Line(k+2) - sum(((-2 - posr_vals + 2 * posr_vals.^2 + posr_vals.^3) .* posr_vals + 2 * x1_vals) ./ 24 .* Kernk1, 'all');
-        end
-    end
-
-
-    % Define ranges for ii and l
-    i_vals32 = ((2*refp+1):((rn(k)+nr)*refp))';
-    l_vals = (dtheta/2):dtheta:(pi-dtheta/4);
-    
-    % Compute Kernels and radn values for all combinations of ii and l
-    Kernk2 = (2 * (1 ./ (i_vals32 - 1/2) - 1 ./ (i_vals32 + 1/2)));
-    %[ii_grid, l_grid] = ndgrid(ii, l_vals);
-    radn = abs(sqrt((rn(k) + i_vals32 .* cos(l_vals) / refp).^2 + (i_vals32 .* sin(l_vals) / refp).^2));
-    idxs = floor(radn);
-    w1 = min(max(0, radn - idxs), 1); w2 = w1.^2; w3 = w1.^3;
-    
-    % Initialize Line vector update values
-    LineUpdatek = zeros(1, nr);
-    sliceAndSum = @(exp, cond, idx, nr) accumarray(idx(cond), exp(cond), [nr 1])';
-    
-    % Accumulate updates for each index in Line based on conditions
-    cond1 = idxs < 0.5; 
-    
-    LineUpdatek = LineUpdatek + sliceAndSum(-(3 * w3 / 4 - 7 * w2 / 4 + 1) .* Kernk2, cond1, idxs+1, nr);
-    LineUpdatek = LineUpdatek + sliceAndSum(-(-w3 + 2 * w2)  .* Kernk2, cond1, idxs+2, nr);
-    LineUpdatek = LineUpdatek + sliceAndSum(-(w3 - w2) / 4 .* Kernk2, cond1, idxs+3, nr);
-    
-    
-    cond2 = (idxs >= 0.5) & (idxs < nr); 
-    
-    LineUpdatek = LineUpdatek + sliceAndSum(-(-w3 / 6 + w2 / 2 - w1/3) .* Kernk2, cond2, idxs, nr);
-    LineUpdatek = LineUpdatek + sliceAndSum(-(w3 / 2 - w2 - w1 / 2 + 1) .* Kernk2, cond2, idxs+1, nr);
-    
-    cond3 = (idxs < nr - 1) & (idxs >= 0.5); 
-    cond4 = (idxs < nr - 2) & (idxs >= 0.5); 
-    LineUpdatek = LineUpdatek + sliceAndSum(-(-w3 / 2 + w2 / 2 + w1) .* Kernk2, cond3, idxs+2, nr);
-    LineUpdatek = LineUpdatek + sliceAndSum(-(w3 - w1) / 6 .* Kernk2, cond4, idxs+3, nr);
-    
-    
-    Line = Line + LineUpdatek;
-
-    
-    % Final adjustments to Line
-    Line = dtheta / (2 * pi * drp) * Line;
-    Line(k) = Line(k) + 2 / (4 * dr + drp);
-    DTNnew345(k,:) = Line;
-end
+I = (eye(nr)==1); I(1:3, 1:3) = 0;
+DTNnew345(I) = DTNnew345(I) + 2/(4*dr+drp);
 
 save(['DTNnew345nr',num2str(nr),'D',num2str(D),'refp',num2str(refp),'.mat'],'DTNnew345')
-
 
 end

@@ -155,7 +155,6 @@ if true || runNumber == 0
     % else
     %     disp('A pool already exists.')
     % end
-    full_counter = 0;
     for ll = 4:poolnum*workerload:nr 
         for k = ll:min(ll+poolnum*workerload-1,nr)
             k/nr;
@@ -164,7 +163,7 @@ if true || runNumber == 0
                 Kern = 2*(1/(ii-1/2)-1/(ii+1/2));
                 for l=dtheta/2:dtheta:pi-dtheta/4
                     radn = abs(sqrt((rn(k)+ii*cos(l)/refp)^2+(ii*sin(l)/refp)^2));
-                    x1 = ii*cos(l)/refp;
+                    x1 = ii*cos(l)/refp; 
                     posr = radn-rn(k);
                     Line(k-2) = Line(k-2) - (  ( 2-  posr-2*posr^2+  posr^3)*posr- 2*x1)/24   *Kern;
                     Line(k-1) = Line(k-1) - (4*(-4+4*posr+  posr^2-  posr^3)*posr+16*x1)/24   *Kern;
@@ -176,12 +175,13 @@ if true || runNumber == 0
                         end
                     end    
                 end
-            end     
+            end 
+            
             for ii=2*refp+1:(rn(k)+nr)*refp
                 Kern = 2*(1/(ii-1/2)-1/(ii+1/2));
                 for l=dtheta/2:dtheta:pi-dtheta/4
                     radn = abs(sqrt((rn(k)+ii*cos(l)/refp)^2+(ii*sin(l)/refp)^2));
-                    idx1 = floor(radn);
+                    idx1 = floor(radn); 
                     w1 = min(max(0,radn - idx1),1);
                     if idx1 < .5
                         Line(idx1+1) = Line(idx1+1) - (3*w1^3/4-7*w1^2/4+1)*    Kern;
@@ -199,6 +199,7 @@ if true || runNumber == 0
                     end
                 end
             end
+            
             Line(:) = dtheta/(2*pi*drp)*Line(:);
             Line(k) = Line(k) + 2/(4*dr+drp);
 
