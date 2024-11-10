@@ -65,8 +65,9 @@ datetimeMarker = datetime('now'); datetimeMarker.Format = 'yyyyMMddmmss';
 NameValueArgs.datetimeMarker = datetimeMarker;
 
 % Add arguments to the current scope
-cellfun(@(f) assignin('caller', f, NameValueArgs.(f)), fieldnames(NameValueArgs));
 NameValueArgs.forceFrequency = NameValueArgs.forceFrequency * 2 * pi; % We use angular frequency
+cellfun(@(f) assignin('caller', f, NameValueArgs.(f)), fieldnames(NameValueArgs));
+
 % Reset any existing warnings
 lastwarn('', '');
 
