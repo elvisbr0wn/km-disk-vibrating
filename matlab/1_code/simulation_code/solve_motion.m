@@ -46,7 +46,7 @@ arguments
     % Default values amount to a water bath
     NameValueArgs.diskRadius (1, 1) double = .5 % Radius of the oscillating disk, in cm
     NameValueArgs.diskMass (1, 1) double = 1 % Mass in grams of the disk
-    NameValueArgs.forceAmplitude (1, 1) double = 1000 % Amplitude of sinusoidal force applied to disk (in dynes)
+    NameValueArgs.forceAmplitude (1, 1) double = 10 % Amplitude of sinusoidal force applied to disk (in dynes)
     NameValueArgs.forceFrequency (1, 1) double = 90 % Frequency of sinusoidal force in Hz
     NameValueArgs.bathDensity (1, 1) double = 1 % Density of bath's fluid in g/cm^3
     NameValueArgs.bathSurfaceTension (1, 1) double = 72.20 % For water, in dynes/cm
@@ -55,7 +55,7 @@ arguments
     NameValueArgs.bathDiameter (1, 1) double = 100 % Diameter of the bath wrt to disk Radius
     NameValueArgs.spatialResolution (1, 1) double = 50 % Number of numerical radial intervals in one disk radius
     NameValueArgs.temporalResolution (1, 1) double = 20; % Number of temporal steps in one adimensional unit
-    NameValueArgs.simulationTime (1, 1) double = .01; % Time to be simulated in seconds
+    NameValueArgs.simulationTime (1, 1) double = 10/90; % Time to be simulated in seconds
     NameValueArgs.debug_flag (1, 1) logical = true; % To show some debugging info
 end
 
@@ -123,8 +123,8 @@ Fr = L_unit / (g * T_unit^2); % Froude number
 We = bathDensity * L_unit^3 / (bathSurfaceTension * T_unit^2); % Weber number
 
 % Compute adimensionalized force, frequency, and object mass
-force_adim = forceAmplitude / diskMass * T_unit^2 / L_unit;
-surface_force_adim = 2*pi*diskRadius*bathSurfaceTension/diskMass * T_unit^2 / L_unit;
+force_adim = forceAmplitude / diskMass * (T_unit^2 / L_unit);
+surface_force_adim = 2*pi*diskRadius*bathSurfaceTension/diskMass * (T_unit^2 / L_unit);
 freq_adim = forceFrequency * T_unit;
 obj_mass_adim = diskMass / M_unit;
 
@@ -198,10 +198,12 @@ try
             y = [z, z+1/10, z+1/10, z];
             fill(x, y, 'k');
   
-            axis equal
+            %axis equal
             title(sprintf('   t = %0.3f s, z = %.2f', recordedConditions{current_index}.time*T_unit, z*L_unit),'FontSize',16);
             grid on
             hold off;
+            xlim([-1.5, 1.5]);
+            ylim([-.2, 0.05]);
             %set(gca,'xlim',[-6 6])
             drawnow;
         end
@@ -257,7 +259,7 @@ function results_saver(fileName, indexes, variables, variableNames, NameValueArg
         sprintf("rho%.2fgcm3-sigma%.2fdynecm-nu%.4fSt", ...
         NameValueArgs.bathDensity, NameValueArgs.bathSurfaceTension, NameValueArgs.bathViscosity), ...
         sprintf("diskRadius%.2gcm-diskMass%.2gg", NameValueArgs.diskRadius, NameValueArgs.diskMass), ...
-        sprintf("forceAmplitude%gdyne-forceFrequency%gHz", NameValueArgs.forceAmplitude, NameValueArgs.forceFrequency)
+        sprintf("forceAmplitude%gdyne-forceFrequency%gHz", NameValueArgs.forceAmplitude, NameValueArgs.forceFrequency/(2*pi))
     };
     for ii = 1:length(folders)
         folder = folders{ii};

@@ -39,7 +39,7 @@ function [next_condition, PROBLEM_CONSTANTS] = advance_one_step(previous_conditi
         Mat =  [[Sist(:,(cPoints+1):2*nr),...
             [zeros(nr,cPoints);dt*eye(cPoints);zeros(nr-cPoints,cPoints)],...
             zeros(2*nr,1),Sist(:,1:cPoints)*ones(cPoints,1)];
-            [-SF/dr, zeros(1,2*nr-cPoints-1),-dt*pIntegral(1:cPoints)/Ma, 1 , SF/dr];
+            [-SF*dt/dr, zeros(1,2*nr-cPoints-1),-dt*pIntegral(1:cPoints)/Ma, 1 , SF*dt/dr];
             [zeros(1,2*nr-cPoints),-zeros(1, cPoints)  ,-dt,1]];
         % Now save the matrix for later
         PROBLEM_CONSTANTS.precomputedInverse = inv(Mat);
